@@ -77,26 +77,16 @@ class RedisAggregator(BaseAggregator, BaseWorkerAggregator):
         self._send_agg_pack()
 
     def finalize_results(self):
-        # process border words
         pipe = self.redis.pipeline()
         for worker in self.workers:
             pipe.hmget(self._get_worker_border_key(worker), ['first', 'last'])
-        data = pipe.execute()
-        prev_last_word = None
-        while data:
-            first_word, last_word = data.pop(0)
-            if first_word and prev_last_word:
-                self.aggregate(prev_last_word + first_word)
-            elif first_word or prev_last_word:
-                self.aggregate(first_word or prev_last_word)
-            prev_last_word = last_word
-        if prev_last_word:
-            self.aggregate(prev_last_word)
+        self._aggregate_border_words(pipe.execute())
         self._send_agg_pack()
         i = 0
         result = True
         while result:
-            result = self.redis.zrevrangebyscore(self.prefix, '+inf', '-inf', i * self.agg_size, self.agg_size, withscores=True)
+            result = self.redis.zrevrangebyscore(self.prefix, '+inf', '-inf', i * self.agg_size, self.agg_size,
+                                                 withscores=True)
             i += 1
             for item in result:
                 try:

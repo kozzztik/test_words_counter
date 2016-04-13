@@ -11,6 +11,7 @@ from words_counter.workers.threads import ThreadWorker
 from words_counter.workers.multiprocessor import ProcessWorker
 from words_counter.workers.celery_worker import CeleryWorker
 from words_counter.aggregators.redis_aggr import RedisAggregator
+from words_counter.aggregators.dict_aggr import StrongSortedDictAggregator
 import settings
 
 
@@ -29,7 +30,7 @@ class AuthBackendTestCase(unittest.TestCase):
         for base_result, new_result in zip(base_results, results):
             base_key, base_value = base_result
             key, value = new_result
-            self.assertEqual(base_key, key, 'Keys on one place are different')
+            self.assertEqual(base_key, key, 'Keys on one place are different (%s, %s)' % (base_key, key))
             self.assertEqual(base_value, value, 'Keys values are different on key %s' % key)
 
     def test_concurrency(self):
@@ -89,6 +90,16 @@ class AuthBackendTestCase(unittest.TestCase):
         self.assertEqual(results[0], ('v', 2.0))
         self.assertEqual(results[1], ('nah', 1.0))
         self.assertEqual(results[2], ('k', 1.0))
+
+    def test_dict_aggr_multi_proc(self):
+        processor = CounterProcessor(self.source_class, ProcessWorker, StrongSortedDictAggregator, SimpleSplitter)
+        results = list(processor.count_words(self._test_file, 'results', 6, 128, settings))
+        self._check_results(results)
+
+    def test_dict_aggr_threads(self):
+        processor = CounterProcessor(self.source_class, ThreadWorker, StrongSortedDictAggregator, SimpleSplitter)
+        results = list(processor.count_words(self._test_file, 'results', 6, 128, settings))
+        self._check_results(results)
 
 
 if __name__ == '__main__':
