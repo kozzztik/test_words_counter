@@ -27,15 +27,18 @@ class DictWorkerAggregator(BaseWorkerAggregator):
 
 
 class DictAggregator(BaseAggregator):
-    def __init__(self, result_name, remove_mode=False, **kwargs):
-        super(DictAggregator, self).__init__(result_name, remove_mode, **kwargs)
+    def __init__(self, remove_mode=False, **kwargs):
+        super(DictAggregator, self).__init__(remove_mode, **kwargs)
         self.workers = {}
-        self.agg = {}
 
     def aggregate(self, word, count=1):
-        word = word.lower()
-        v = self.agg.get(word, 0)
-        self.agg[word] = v + count
+        if self.remove_mode:
+            if word in self.agg:
+                del self.agg[word]
+        else:
+            word = word.lower()
+            v = self.agg.get(word, 0)
+            self.agg[word] = v + count
 
     def sort_kwargs(self):
         return {'key': lambda x: x[1]}

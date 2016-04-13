@@ -8,16 +8,13 @@ class RedisAggregator(BaseAggregator, BaseWorkerAggregator):
     agg_count = 0
     _redis = None
 
-    def __init__(self, result_name, host, port, prefix, ttl, db=0, agg_size=100, remove_mode=False, **kwargs):
-        super(RedisAggregator, self).__init__(result_name, remove_mode=remove_mode, **kwargs)
+    def __init__(self, host, port, prefix, ttl, db=0, agg_size=100, remove_mode=False, **kwargs):
+        super(RedisAggregator, self).__init__(remove_mode=remove_mode, **kwargs)
         self.host = host
         self.port = port
         self.db = db
-        self.result_name = result_name
-        self._prefix = prefix
-        self.prefix = prefix + result_name + '_'
+        self.prefix = prefix
         self.ttl = ttl
-        self.agg_dict = {}
         self.agg_size = agg_size
         self.workers = []
         if not remove_mode:
@@ -38,14 +35,14 @@ class RedisAggregator(BaseAggregator, BaseWorkerAggregator):
         self.worker_num = num
         self.workers.append(num)
         worker_agg = copy.copy(self)
-        worker_agg.agg_dict = {}
+        worker_agg.agg = {}
         return worker_agg
 
     def aggregate(self, word):
         word = word.lower()
         self.agg_count += 1
-        v = self.agg_dict.get(word, 0)
-        self.agg_dict[word] = v + 1
+        v = self.agg.get(word, 0)
+        self.agg[word] = v + 1
         if self.agg_count >= self.agg_size:
             self._send_agg_pack()
             self.agg_count = 0
@@ -61,17 +58,17 @@ class RedisAggregator(BaseAggregator, BaseWorkerAggregator):
         pipe.execute()
 
     def _send_agg_pack(self):
-        if not self.agg_dict:
+        if not self.agg:
             return
         pipe = self.redis.pipeline()
-        for key, value in self.agg_dict.items():
+        for key, value in self.agg.items():
             if self.remove_mode:
                 pipe.zrem(self.prefix, key)
             else:
                 pipe.zincrby(self.prefix, key, value)
         pipe.expire(self.prefix, self.ttl)
         pipe.execute()
-        self.agg_dict = {}
+        self.agg = {}
 
     def __exit__(self, ext, exv, trb):
         self._send_agg_pack()

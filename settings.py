@@ -19,7 +19,7 @@ read_buffer_size = 1024
 aggregator = {
     'host': 'localhost',
     'port': '6379',
-    'prefix': 'word_counter_',
+    'prefix': 'word_counter',
     'ttl': 60 * 60,
     'agg_size': 100
 }

@@ -15,10 +15,10 @@ class BaseWorkerAggregator(object):
 
 
 class BaseAggregator(object):
-    def __init__(self, result_name, remove_mode=False, **kwargs):
-        self.result_name = result_name
+    def __init__(self, remove_mode=False, agg_data=None, **kwargs):
         self.kwargs = kwargs
         self.remove_mode = remove_mode
+        self.agg = agg_data or {}
 
     def aggregate(self, word):
         raise NotImplementedError
