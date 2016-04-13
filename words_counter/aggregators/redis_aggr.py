@@ -64,10 +64,10 @@ class RedisAggregator(BaseAggregator, BaseWorkerAggregator):
         if not self.agg_dict:
             return
         pipe = self.redis.pipeline()
-        if self.remove_mode:
-            pipe.zrem(self.prefix, *self.agg_dict.keys())
-        else:
-            for key, value in self.agg_dict.items():
+        for key, value in self.agg_dict.items():
+            if self.remove_mode:
+                pipe.zrem(self.prefix, key)
+            else:
                 pipe.zincrby(self.prefix, key, value)
         pipe.expire(self.prefix, self.ttl)
         pipe.execute()

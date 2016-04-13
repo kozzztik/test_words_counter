@@ -21,6 +21,7 @@ aggregator = {
     'port': '6379',
     'prefix': 'word_counter_',
     'ttl': 60 * 60,
+    'agg_size': 10000
 }
 
 CELERY_SETTINGS = {
